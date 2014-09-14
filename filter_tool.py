@@ -59,7 +59,7 @@ def main():
 
   mat_size = (16, 16)
   mat_scale = (16, 16)  # scale of projection from real-space to matrix-space
-  gauss_mat = Triplify(MatrixFromFunction(
+  gauss_cmat = Triplify(MatrixFromFunction(
       mat_size,
       mat_scale,
       MakeGaussian(
@@ -67,40 +67,40 @@ def main():
           (3, 3),  # variance
       ),
   ))
-  add_mat = np.dstack(map(NormalizeSum, [
+  add_cmat = np.dstack(map(NormalizeSum, [
       MatrixFromFunction(mat_size, mat_scale, lambda (x,y): x + y),
       MatrixFromFunction(mat_size, mat_scale, lambda (x,y): x - y),
       MatrixFromFunction(mat_size, mat_scale, lambda (x,y): y - x),
   ]))
-  rand_mat = np.dstack([MatrixFromFunction(
+  rand_cmat = np.dstack([MatrixFromFunction(
       mat_size,
       mat_scale,
       lambda _: random.random(),
   ) for __ in xrange(3)])
 
   # Wierd results for this one. ConvolveImg implementation might be flawed.
-  sobel_x = np.array([
+  sobel_x_mat = np.array([
     [-1.0, 0.0, 1.0],
     [-2.0, 0.0, 2.0],
     [-1.0, 0.0, 1.0],
   ])
-  twisted_sobel_mat = np.dstack([sobel_x, sobel_x.T, sobel_x])
-  sobel_x_mat = Triplify(sobel_x)
-  sobel_y_mat = Triplify(sobel_x.T)
+  twisted_sobel_cmat = np.dstack([sobel_x_mat, sobel_x_mat.T, sobel_x_mat])
+  sobel_x_cmat = Triplify(sobel_x_mat)
+  sobel_y_cmat = Triplify(sobel_x_mat.T)
 
-  # convolve_mat = 0.1 * add_mat + gauss_mat
-  convolve_mat = sobel_x_mat
+  # convolve_cmat = 0.1 * add_cmat + gauss_cmat
+  convolve_cmat = sobel_x_cmat
 
   img_in = Image.open(args.input_image)
   img_in.draft(mode='RGB', size=img_in.size)
 
-  img_out = ConvolveImg(img_in, convolve_mat)
+  img_out = ConvolveImg(img_in, convolve_cmat)
   img_out.save(args.output_image)
 
   # Save the result image's channels seperately.
-  img_out_channels = SplitChannels(img_out)
-  for idx, fname in enumerate(['red', 'green', 'blue']):
-    img_out_channels[idx].save('out_%s.png' % fname)
+  # img_out_channels = SplitChannels(img_out)
+  # for idx, fname in enumerate(['red', 'green', 'blue']):
+  #   img_out_channels[idx].save('out_%s.png' % fname)
 
 
 if __name__ == '__main__':

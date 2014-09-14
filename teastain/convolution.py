@@ -1,5 +1,5 @@
 import math
-import scipy.signal
+import scipy.ndimage
 import numpy as np
 
 from PIL import Image
@@ -72,18 +72,30 @@ def ConvolveImg(img_in, convolve_mat):
     ''' Normalizes a numpy array to the range [0, new_max]. Modifies the array
     in-place. Returns a reference to the (modified) input array.
     '''
-    m = arr.max()
-    if m != 0:
-      arr /= m
+    arr -= arr.min()
+    mx = arr.max()
+    if mx != 0:
+      arr /= mx
       arr *= new_max
     return arr
 
-  img_in_data = np.array(img_in)
-  img_out_data = np.dstack([
-      np.uint8(NormalizeTo(scipy.signal.convolve2d(img_in_data[...,idx],
-                                                   convolve_mat[...,idx],
-                                                   mode='same'),
-                           255))
-      for idx in xrange(img_in_data.shape[2])
-  ])
+  def Convolve(img, mat):
+    ''' Convolves the two arrays. Return value's size is the same is `img`.
+    '''
+    convolve_func = scipy.ndimage.convolve
+    return np.uint8(NormalizeTo(convolve_func(img, np.float64(mat)), 255.0))
+
+  img_in_data = np.float64(np.array(img_in))
+  if len(img_in_data.shape) > 2:
+    # Image has multiple channels. Convolve each seperately and then join them
+    # into a single image
+    img_out_data = np.dstack([
+        Convolve(img_in_data[...,idx], convolve_mat[...,idx])
+        for idx in xrange(img_in_data.shape[2])
+    ])
+  else:
+    # TODO: convolve_mat has 3 dimensions, but the depth dimension is unneeded
+    # when the input only has one channel. For now, I'll just use a slice to
+    # remove the extra dimension.
+    img_out_data = Convolve(img_in_data, convolve_mat[...,0])
   return Image.fromarray(img_out_data, img_in.mode)
